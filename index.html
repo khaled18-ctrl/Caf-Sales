@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brew Haven Café – Sales & Upsell Dashboard</title>
+<style>
+:root{--bg:#f6f4f0;--card:#fff;--tx:#1f1b16;--mu:#6b645b;--ac:#8a4b1f;--ac2:#d99a5b;--bd:#e5dfd6;--gd:#2e7d4f;--bad:#b3402a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17130f;--card:#241e18;--tx:#f0e9df;--mu:#a69c8f;--ac:#e0a066;--ac2:#8a4b1f;--bd:#3a3128;--gd:#6cc28f;--bad:#f08a72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,sans-serif;padding:16px}
+.w{max-width:1100px;margin:auto}h1{font-size:22px;margin:0}h2{font-size:15px;margin:0 0 10px}
+.sub{color:var(--mu);font-size:13px}.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 8px}
+.g{display:grid;gap:12px;margin-bottom:12px}.k{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.c2{grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}
+.cd{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;min-width:0}
+.kv{font-size:24px;font-weight:700}.kl{color:var(--mu);font-size:12px}
+.r{display:grid;grid-template-columns:90px 1fr 70px;gap:8px;align-items:center;font-size:13px;margin:5px 0}
+.t{background:var(--bd);border-radius:5px;height:14px}.t i{display:block;height:100%;border-radius:5px;background:var(--ac)}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--bd)}th:first-child,td:first-child{text-align:left}th{color:var(--mu);font-weight:600}
+.up{color:var(--gd)}.dn{color:var(--bad)}ul{margin:0;padding-left:18px}li{margin:6px 0}
+</style></head><body><div class="w">
+<div class="bar"><div><h1>Brew Haven Café – Sales &amp; Upsell Dashboard</h1><div class="sub" id="meta"></div></div>
+<div><select id="ft"><option value="">All day parts</option><option>Morning</option><option>Afternoon</option><option>Evening</option><option>Night</option></select>
+<select id="fc"><option value="">All customers</option><option>New</option><option>Returning</option></select></div></div>
+<div class="g k" id="kpi"></div>
+<div class="g c2"><div class="cd"><h2>Revenue by day part</h2><div id="rt"></div></div>
+<div class="cd"><h2>Avg order size by day part (upsell signal)</h2><div id="at"></div></div></div>
+<div class="g c2"><div class="cd"><h2>Channel mix by day part (revenue, $)</h2><div class="sc" id="hm"></div></div>
+<div class="cd"><h2>Monthly revenue</h2><div id="mo"></div></div></div>
+<div class="g c2"><div class="cd"><h2>Staff upsell leaders (Upsell Index = rep AOV ÷ avg AOV)</h2><div class="sc" id="top"></div></div>
+<div class="cd"><h2>Staff needing upsell coaching</h2><div class="sc" id="low"></div></div></div>
+<div class="cd"><h2>Actionable recommendations</h2><ul id="rec"></ul></div>
+<p class="sub">Source: Google Sheet “Data” (99 transactions, Jan–Dec 2023, one location). The sheet has no product/SKU field, so “product mix” is measured by sales channel and “upselling” by Average Order Size and conversions per rep and day part.</p>
+</div>
+<script>
+const CH={G:"Google Ads",R:"Referral",W:"Walk-in",I:"Instagram",E:"Email",F:"Facebook"},TD={M:"Morning",A:"Afternoon",E:"Evening",N:"Night"},CT={N:"New",R:"Returning"};
+const raw=`0917 M G 338.97 92.73 6 N Allison Hill
+0402 M R 157.04 146.14 2 N Noah Rhodes
+0608 M G 429.66 93.65 4 R Angie Henderson
+0411 A R 283.02 137.28 3 R Daniel Wagner
+0905 A W 153.38 67.8 1 R Cristian Santos
+0323 A I 407.07 187.03 21 R Connie Lawrence
+0223 N R 455.37 386.69 11 R Abigail Shaffer
+0720 A I 487.7 111.46 5 N Gina Moore
+0929 M W 230.8 97 5 N Gabrielle Davis
+0923 M G 162.2 158.5 2 R Ryan Munoz
+0829 E W 54.91 15.64 0 N Monica Herrera
+0503 E E 192.99 39.61 4 N Jamie Arnold
+0806 A I 87.1 29.86 4 N Lisa Hensley
+0813 A F 305.14 197.02 10 N Michele Williams
+0325 A I 271.41 78.08 9 R Dylan Miller
+0913 E R 201.11 70.61 2 R Brian Ramirez
+0316 A F 313.24 109.08 7 R Holly Wood
+0621 N I 177.62 51.73 1 N Derek Zuniga
+0511 M E 494 208.77 16 R Lisa Jackson
+0113 A R 275.89 72.44 7 R Carla Gray
+0212 A G 385.17 103.32 11 R Margaret Hawkins DDS
+0328 A W 381.77 143.12 4 N Patty Perez
+1009 A G 297.43 65.35 8 R Ethan Adams
+0307 M E 271.47 57.36 3 R Tommy Walter
+0205 A F 371.78 312.19 11 R Matthew Foster
+0127 N I 185.84 40.61 2 R Judy Baker
+0928 E R 82.83 19.7 1 N Justin Baker
+0221 M I 104.68 32.17 5 N Stephanie Ross
+0603 N G 251.83 78.77 6 R Zachary Hicks
+0927 A F 115.47 33.55 1 N Anthony Rodriguez
+0625 N F 258.59 61.78 2 R Rebecca Henderson
+0104 A R 38.5 38.16 0 R James Ferrell
+0525 E G 301.36 144 6 R Tricia Valencia
+1104 M F 345.93 89.43 6 R Nathan Maldonado
+1127 A F 65.32 14.76 1 N Debra Davidson
+0530 N F 388.84 83.26 4 N Jeffrey Chavez
+1220 M E 251.48 54.07 5 R Sherri Baker
+0524 E G 229.01 60.02 2 R Cassandra Gaines
+0830 A E 332.56 144.72 5 R Elizabeth Fowler
+0606 N G 306.29 135.54 8 N Brittany Farmer
+0323 N I 102.87 25.59 1 N Paula Moreno
+1018 E W 355.58 293.15 31 N Fred Smith
+0319 E F 396.92 255.16 5 N Sherry Decker
+0802 E W 343.03 98.88 30 R Anthony Humphrey
+0507 A F 287.71 87.36 3 R Angelica Tucker
+0417 A I 382.77 114.85 4 R Philip Cannon
+0110 E W 69.72 20.12 0 N John Pierce
+0917 N G 131.87 82.41 6 R Shane Henderson
+1205 N F 206.18 45.85 8 N Joshua Blair
+0829 N R 60.81 22.97 0 R Eric Carney
+0929 M E 147.96 140.83 1 N Jessica Holmes
+0611 N R 85.51 36.04 1 N Danny Morgan
+0112 M R 262.22 71.24 5 R Crystal Robinson
+0212 E I 256.03 53.21 6 N Mark Perez
+0206 E E 484.45 160.43 5 N Shannon Jones
+0203 E G 397.99 240.57 8 R Michael Lewis
+0124 N R 279.28 104.62 5 N Timothy Duncan
+0829 A G 375.69 111.02 7 R Richard Aguirre
+0630 A E 467.26 103.85 4 N Brent Jordan
+0301 M E 467.4 178.57 5 R John Daniel
+1026 E I 201.37 82.13 6 N Victoria Garcia
+0420 E R 249.56 130.1 5 N Gerald Hensley
+0425 A G 193.55 40.14 8 R Connor West
+1101 N F 56.91 28.1 0 N Donald Wright
+0122 N E 437.72 109.08 7 N Jessica Callahan
+0118 N R 24.34 7.79 0 R Amber Kidd
+0304 M E 55.07 12.6 0 N Tracy House
+0427 M I 201.67 50.14 4 N Carol Tucker
+1021 E F 177.68 37.8 2 R James Brown
+0909 A G 498.27 155.92 26 N William Baker
+1004 M E 167.83 65.08 11 N Jordan Henderson
+0921 N W 355.3 87.6 5 R Whitney Peters
+1215 E I 306.5 86.19 8 R Brittney Phillips
+1103 M F 377.11 317.67 6 N Lauren Daniels
+0801 M G 260.21 53.47 5 N Amy Silva
+0905 N E 497.15 191.41 8 R Sarah Moore
+0924 E I 475.67 187.19 19 N Angela Lopez
+0125 N W 332.42 230.86 4 N Megan Young
+0913 N R 205.16 138.7 2 R Steve Sanchez
+1027 E R 264.81 67.89 3 R Lisa Barnes
+0203 E F 354.12 73.46 3 R Kelly Donovan
+0805 N R 59.94 24.86 0 R Mike Allen
+0626 E I 203.38 59.5 3 R Michael Evans
+1123 N F 71.38 17.47 2 R Paul Jones
+0312 A W 455.75 98.82 10 N Zachary Ferrell
+1019 M G 282.47 64.42 19 R Daniel Baker
+0410 M R 63.69 19.96 3 R Shirley Suarez
+1129 E F 422.2 231.84 12 N Christopher Bass
+0407 M E 357.1 97.34 3 N Lisa Archer
+0418 E E 260.29 68.1 15 R Aimee Montoya
+0731 N W 117.54 25.77 1 N Matthew Mcmillan
+0319 E G 236.27 67.84 8 R Brian Rodriguez
+0624 E E 270.81 266.96 3 R Denise Jacobs
+0708 A E 277.11 70.46 24 N Christina Walters
+0107 A R 141.73 32.89 1 N John Whitehead
+1208 A R 348.88 75.97 6 R Anna Henderson
+1119 A E 130.97 32.79 1 R Aaron Wise
+0609 N G 426.75 144.52 7 N Deborah Figueroa
+0428 N I 172.96 77.94 4 R Jessica Smith`;
+const D=raw.split("\n").map(l=>{const p=l.split(" ");return{m:+p[0].slice(0,2),t:TD[p[1]],c:CH[p[2]],rev:+p[3],aov:+p[4],cv:+p[5],ct:CT[p[6]],rep:p.slice(7).join(" ")}});
+const $=id=>document.getElementById(id),sum=(a,f)=>a.reduce((s,x)=>s+f(x),0),avg=(a,f)=>a.length?sum(a,f)/a.length:0,$$=n=>"$"+Math.round(n).toLocaleString(),f1=n=>"$"+n.toFixed(0);
+const TS=["Morning","Afternoon","Evening","Night"],CS=Object.values(CH);
+const grp=(a,f)=>a.reduce((o,x)=>((o[f(x)]=o[f(x)]||[]).push(x),o),{});
+const bars=(rows,fmt,col)=>{const mx=Math.max(...rows.map(r=>r[1]),1);return rows.map(r=>`<div class="r"><span>${r[0]}</span><div class="t"><i style="width:${r[1]/mx*100}%;${col||""}"></i></div><b>${fmt(r[1])}</b></div>`).join("")};
+function render(){
+ const ft=$("ft").value,fc=$("fc").value,A=D.filter(x=>(!ft||x.t===ft)&&(!fc||x.ct===fc));
+ const rev=sum(A,x=>x.rev),cv=sum(A,x=>x.cv),aov=avg(A,x=>x.aov),zero=A.filter(x=>x.cv===0).length;
+ $("meta").textContent=A.length+" transactions · "+(ft||"all day parts")+" · "+(fc||"all customers");
+ const K=[["Total revenue",$$(rev)],["Conversions",cv],["Avg order size",f1(aov)],["Revenue / txn",f1(avg(A,x=>x.rev))],["Revenue / conversion",cv?f1(rev/cv):"–"],["New-customer share",A.length?Math.round(A.filter(x=>x.ct==="New").length/A.length*100)+"%":"–"],["Zero-conversion txns",zero+" ("+(A.length?Math.round(zero/A.length*100):0)+"%)"]];
+ $("kpi").innerHTML=K.map(k=>`<div class="cd"><div class="kl">${k[0]}</div><div class="kv">${k[1]}</div></div>`).join("");
+ const gt=grp(A,x=>x.t);
+ $("rt").innerHTML=bars(TS.map(t=>[t,sum(gt[t]||[],x=>x.rev)]),$$);
+ $("at").innerHTML=bars(TS.map(t=>[t,avg(gt[t]||[],x=>x.aov)]),f1,"background:var(--ac2)");
+ let h="<table><tr><th>Channel</th>"+TS.map(t=>"<th>"+t+"</th>").join("")+"<th>Total</th></tr>";
+ const mx=Math.max(...CS.flatMap(c=>TS.map(t=>sum(A.filter(x=>x.c===c&&x.t===t),x=>x.rev))),1);
+ CS.forEach(c=>{h+="<tr><td>"+c+"</td>"+TS.map(t=>{const v=sum(A.filter(x=>x.c===c&&x.t===t),x=>x.rev);return`<td style="background:color-mix(in srgb,var(--ac) ${Math.round(v/mx*55)}%,transparent)">${v?Math.round(v):"–"}</td>`}).join("")+"<td><b>"+Math.round(sum(A.filter(x=>x.c===c),x=>x.rev))+"</b></td></tr>"});
+ $("hm").innerHTML=h+"</table>";
+ const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],mv=M.map((_,i)=>sum(A.filter(x=>x.m===i+1),x=>x.rev)),mm=Math.max(...mv,1);
+ $("mo").innerHTML=`<svg viewBox="0 0 360 150" width="100%" role="img" aria-label="Monthly revenue">${mv.map((v,i)=>`<rect x="${i*30+5}" y="${125-v/mm*105}" width="22" height="${v/mm*105}" rx="3" fill="var(--ac)"/><text x="${i*30+16}" y="140" font-size="9" text-anchor="middle" fill="var(--mu)">${M[i]}</text><text x="${i*30+16}" y="${120-v/mm*105}" font-size="8" text-anchor="middle" fill="var(--mu)">${Math.round(v/100)/10}k</text>`).join("")}</svg>`;
+ const gr=Object.entries(grp(A,x=>x.rep)).map(([n,r])=>({n,aov:avg(r,x=>x.aov),cv:sum(r,x=>x.cv),t:r[0].t,idx:avg(r,x=>x.aov)/(aov||1)}));
+ const tb=(rows,cls)=>"<table><tr><th>Rep</th><th>Day part</th><th>AOV</th><th>Conv.</th><th>Index</th></tr>"+rows.map(r=>`<tr><td>${r.n}</td><td>${r.t}</td><td>${f1(r.aov)}</td><td>${r.cv}</td><td class="${cls}">${r.idx.toFixed(2)}×</td></tr>`).join("")+"</table>";
+ const s=[...gr].sort((a,b)=>b.aov-a.aov);
+ $("top").innerHTML=tb(s.slice(0,8),"up");$("low").innerHTML=tb(s.slice(-8).reverse(),"dn");
+ // insights
+ const R=[],tv=TS.filter(t=>gt[t]).map(t=>({t,aov:avg(gt[t],x=>x.aov),rev:sum(gt[t],x=>x.rev),n:gt[t].length,lo:gt[t].filter(x=>x.aov<aov*.5).length}));
+ if(tv.length>1){const b=[...tv].sort((a,b)=>b.aov-a.aov),w=b[b.length-1];
+  R.push(`<b>Replicate the ${b[0].t} playbook.</b> It has the highest average order (${f1(b[0].aov)}) vs ${f1(w.aov)} in the ${w.t}. Use ${b[0].t} staff as peer coaches and copy their bundle/add-on scripts into the ${w.t} shift.`);
+  const l=[...tv].sort((a,b)=>b.lo/b.n-a.lo/a.n)[0];
+  R.push(`<b>Fix low-ticket transactions in the ${l.t}.</b> ${l.lo} of ${l.n} orders (${Math.round(l.lo/l.n*100)}%) are under half the average order size. Add a standard “make it a combo” prompt at the register and a visible add-on menu.`)}
+ const gc=Object.entries(grp(A,x=>x.c)).map(([c,r])=>({c,rpt:avg(r,x=>x.rev),aov:avg(r,x=>x.aov),n:r.length,z:r.filter(x=>x.cv===0).length}));
+ if(gc.length>1){const b=[...gc].sort((a,b)=>b.rpt-a.rpt)[0],w=[...gc].sort((a,b)=>a.rpt-b.rpt)[0];
+  R.push(`<b>Shift marketing spend toward ${b.c}.</b> It yields the most revenue per transaction (${f1(b.rpt)}), while ${w.c} yields the least (${f1(w.rpt)}). Re-test ${w.c} offers or cut its budget.`);
+  const z=[...gc].sort((a,b)=>b.z/b.n-a.z/a.n)[0];
+  if(z.z)R.push(`<b>Tighten conversion on ${z.c}.</b> ${z.z} of its ${z.n} records have zero conversions; review landing offers or follow-up timing for this channel.`)}
+ const nw=A.filter(x=>x.ct==="New"),rt=A.filter(x=>x.ct==="Returning");
+ if(nw.length&&rt.length)R.push(`<b>${avg(nw,x=>x.aov)<avg(rt,x=>x.aov)?"Grow new-customer basket size":"Convert loyalty into bigger baskets"}.</b> New customers average ${f1(avg(nw,x=>x.aov))} vs ${f1(avg(rt,x=>x.aov))} for returning. ${avg(nw,x=>x.aov)<avg(rt,x=>x.aov)?"Offer a first-visit bundle and a sample add-on.":"Introduce a loyalty add-on reward (e.g. free upgrade on 3rd item)."}`);
+ const hi=s.filter(r=>r.idx>=1.5).length,lo=s.filter(r=>r.idx<.5).length;
+ R.push(`<b>Run staff coaching &amp; incentives.</b> ${hi} reps are at ≥1.5× the average order size and ${lo} are below 0.5×. Pair them up, add a weekly upsell-index leaderboard, and reward gains by day part.`);
+ R.push(`<b>Track what the sheet lacks.</b> Add item/SKU and rep-ID per order to measure real product mix and attach rate, and repeat staff records so trends per rep are statistically meaningful (most reps appear only once here).`);
+ $("rec").innerHTML=R.map(r=>"<li>"+r+"</li>").join("");
+}
+$("ft").onchange=$("fc").onchange=render;render();
+</script></body></html>
